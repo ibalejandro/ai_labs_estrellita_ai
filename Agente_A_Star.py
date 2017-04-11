@@ -48,18 +48,18 @@ class AgenteAStar:
                        (4, 2): {(3, 2): one_third, (4, 1): one_third, (4, 3): one_third},
                        (4, 3): {(3, 3): one_third, (4, 2): one_third, (4, 4): one_third},
                        (4, 4): {(3, 4): one_half, (4, 3): one_half}}
-    sonar_prob_given_dist = {0: {"green": 0.4, "yellow": 0.3, "orange": 0.2, "red": 0.1},
-                             1: {"green": 0.3, "yellow": 0.4, "orange": 0.2, "red": 0.1},
-                             2: {"green": 0.2, "yellow": 0.5, "orange": 0.2, "red": 0.1},
-                             3: {"green": 0.15, "yellow": 0.25, "orange": 0.4, "red": 0.2},
-                             4: {"green": 0.1, "yellow": 0.2, "orange": 0.25, "red": 0.45},
-                             5: {"green": 0.4, "yellow": 0.3, "orange": 0.2, "red": 0.1},
-                             6: {"green": 0.3, "yellow": 0.4, "orange": 0.2, "red": 0.1},
-                             7: {"green": 0.2, "yellow": 0.5, "orange": 0.2, "red": 0.1},
-                             8: {"green": 0.15, "yellow": 0.25, "orange": 0.4, "red": 0.2}}
+    sonar_prob_given_dist = {0: {"verde": 0.7, "amarillo": 0.15, "anaranjado": 0.1, "rojo": 0.05},
+                             1: {"verde": 0.65, "amarillo": 0.2, "anaranjado": 0.1, "rojo": 0.05},
+                             2: {"verde": 0.6, "amarillo": 0.2, "anaranjado": 0.15, "rojo": 0.05},
+                             3: {"verde": 0.55, "amarillo": 0.25, "anaranjado": 0.15, "rojo": 0.05},
+                             4: {"verde": 0.5, "amarillo": 0.25, "anaranjado": 0.2, "rojo": 0.05},
+                             5: {"verde": 0.5, "amarillo": 0.2, "anaranjado": 0.25, "rojo": 0.05},
+                             6: {"verde": 0.1, "amarillo": 0.15, "anaranjado": 0.5, "rojo": 0.25},
+                             7: {"verde": 0.15, "amarillo": 0.15, "anaranjado": 0.2, "rojo": 0.5},
+                             8: {"verde": 0.05, "amarillo": 0.15, "anaranjado": 0.2, "rojo": 0.6}}
 
     def __init__(self):
-        None
+        self.measurement_position = (0, 0)
 
     def update_belief(self):
         self.elapse_time()
@@ -78,6 +78,38 @@ class AgenteAStar:
                     if value.__contains__(position):
                         b_prime += (value[position] * self.belief_prev_t[key[0]][key[1]])
                 self.belief_after_t[position[0]][position[1]] = b_prime
+
+    def set_measurement_position(self, measurement_position):
+        self.measurement_position = measurement_position
+
+    def update_belief_with_obs(self, measurement_position, measurement_color):
+        self.incorporate_observation(measurement_position, measurement_color)
+        self.belief_prev_t = copy.deepcopy(self.belief_after_t_and_obs)
+        print("-----------")
+        print("UPDATED BELIEF AFTER OBSERVATION:")
+        print("-----------")
+        self.print_formatted_grid(self.belief_after_t_and_obs)
+
+    def incorporate_observation(self, measurement_position, measurement_color):
+        normalization_factor = 0
+        for i in range(0, self.GRID_WIDTH_HEIGHT):
+            for j in range(0, self.GRID_WIDTH_HEIGHT):
+                position = (i, j)
+                dist_to_measurement = self.calc_distance(measurement_position, position)
+                prob_color_given_dist_to_measurement = \
+                    self.sonar_prob_given_dist[dist_to_measurement][measurement_color]
+                b_prime = self.belief_after_t[position[0]][position[1]]
+                self.belief_after_t_and_obs[position[0]][position[1]] = prob_color_given_dist_to_measurement * b_prime
+                normalization_factor += self.belief_after_t_and_obs[position[0]][position[1]]
+        # Normalization.
+        for i in range(0, self.GRID_WIDTH_HEIGHT):
+            for j in range(0, self.GRID_WIDTH_HEIGHT):
+                self.belief_after_t_and_obs[i][j] /= normalization_factor
+
+# Utils
+
+    def calc_distance(self, pos_1, pos_2):
+        return abs(pos_1[0] - pos_2[0]) + abs(pos_1[1] - pos_2[1])
 
     def print_formatted_grid(self, grid):
         for i in range(0, self.GRID_WIDTH_HEIGHT):
