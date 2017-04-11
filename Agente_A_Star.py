@@ -1,10 +1,16 @@
 import copy
+import random
 
 class AgenteAStar:
 
-    GRID_WIDTH_HEIGHT = 5
+    SHOOT = 1
+    OBSERVE = 2
+    MOVE = 3
 
-    init_prob = 1 / 25
+    GRID_WIDTH_HEIGHT = 5
+    GRID_SIZE = 25
+
+    init_prob = 1 / GRID_SIZE
     one_half = 1 / 2
     one_third = 1 / 3
     one_fourth = 1 / 4
@@ -58,8 +64,37 @@ class AgenteAStar:
                              7: {"verde": 0.15, "amarillo": 0.15, "anaranjado": 0.2, "rojo": 0.5},
                              8: {"verde": 0.05, "amarillo": 0.15, "anaranjado": 0.2, "rojo": 0.6}}
 
+    # Constructor.
     def __init__(self):
-        self.measurement_position = (0, 0)
+        self.current_player = 0  # There is no current_player at that moment.
+        self.turns_count = 0  # Variable to count the turns of the game
+        self.measurement_position = ()
+        self.prev_action = []
+
+    def get_action_to_take(self, current_player, action_result, adversary_action, star_position):
+
+
+        if not adversary_action:
+            # No adversary action means first turn.
+            action = self.OBSERVE
+            # At the beginning, the adversary could be in any of the 25 positions of the grid with equal probability.
+            action_param = random.randint(1, self.GRID_SIZE)
+        else:
+            adv_action = adversary_action[0]
+            adv_action_param = adversary_action[1]
+            adv_action_result = adversary_action[2]
+
+        # if action == self.SHOOT:
+        #
+        # elif action == self.OBSERVE:
+        #     self.update_belief_with_obs(measurement_position, "rojo")
+        # elif action == self.MOVE:
+        #
+        #
+        action_to_take = [action, action_param]
+        self.prev_action = action_to_take
+        return action_to_take
+
 
     def update_belief(self):
         self.elapse_time()
@@ -120,3 +155,11 @@ class AgenteAStar:
                 else:
                     row += str(grid[i][j]) + "]"
             print(row)
+
+    def convert_tuple_to_index(self, tuple):
+        return (tuple[0] * self.GRID_WIDTH_HEIGHT) + tuple[1] + 1
+
+    def convert_index_to_tuple(self, index):
+        i = int((index - 1) / self.GRID_WIDTH_HEIGHT)
+        j = (index - 1) - (i * self.GRID_WIDTH_HEIGHT)
+        return (i, j)
