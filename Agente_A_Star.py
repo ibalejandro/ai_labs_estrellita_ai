@@ -1,8 +1,6 @@
 import copy
 import random
-
-
-
+import numpy as np
 
 class AgenteAStar:
 
@@ -17,6 +15,9 @@ class AgenteAStar:
 
     GRID_WIDTH_HEIGHT = 5
     GRID_SIZE = 25
+
+    HIGH_RISK_LEVEL = 4
+    LIMIT_TO_SHOOT = 0.6
 
     init_prob = 1 / GRID_SIZE
     one_half = 1 / 2
@@ -81,6 +82,7 @@ class AgenteAStar:
         self.star_position = ()
 
     def get_action_to_take(self, current_player, action_result, adversary_action, star_position):
+        self.current_player = current_player
         self.star_position = self.convert_index_to_tuple(star_position)
         if not adversary_action:
             print("Random observation")
@@ -100,18 +102,25 @@ class AgenteAStar:
                 self.update_belief()
                 self.update_belief_with_obs(measurement_position, action_result)
 
-            if self.calculate_risk_level(adv_action, adv_action_param, adv_action_result) >= 4:
+            if self.calculate_risk_level(adv_action, adv_action_param, adv_action_result) >= self.HIGH_RISK_LEVEL:
                 print("Move")
                 action = self.MOVE
                 action_param = self.get_best_index_to_move(adv_action_param)
                 self.star_position = action_param
             else:
-                print("Observe or shoot")
-                action = self.OBSERVE
-                action_param = 8
+                max_probability, max_elem_index, max_elem_position = \
+                    self.max_probability_and_index_and_position_in_table(self.belief_prev_t)
+                if max_probability > self.LIMIT_TO_SHOOT:
+                    print("Shoot")
+                    action = self.SHOOT
+                else:
+                    print("Observe")
+                    action = self.OBSERVE
+                action_param = max_elem_index
 
         action_to_take = [action, action_param]
         self.prev_action = action_to_take
+        self.turns_count += 2  # When this algorithm executes again, the current turn will be incremented by two.
         return action_to_take
 
     def update_belief(self):
@@ -264,3 +273,9 @@ class AgenteAStar:
         if j - 1 >= 0: # Left.
             possible_movements += 1
         return possible_movements
+
+    def max_probability_and_index_and_position_in_table(self, table):
+        a = np.array(table)
+        index = a.argmax()
+        i, j = np.unravel_index(index, a.shape)
+        return a[i, j], index + 1, (i, j)
