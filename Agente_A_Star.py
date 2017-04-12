@@ -77,13 +77,13 @@ class AgenteAStar:
     def __init__(self):
         self.current_player = 0  # There is no current_player at that moment.
         self.turns_count = 0  # Variable to count the turns of the game
-        self.measurement_position = ()
         self.prev_action = []
         self.star_position = ()
 
     def get_action_to_take(self, current_player, action_result, adversary_action, star_position):
         self.star_position = self.convert_index_to_tuple(star_position)
         if not adversary_action:
+            print("Random observation")
             # No adversary action means first turn.
             action = self.OBSERVE
             # At the beginning, the adversary could be in any of the 25 positions of the grid with equal probability.
@@ -95,33 +95,21 @@ class AgenteAStar:
 
             print("prev_action", self.prev_action)
             if self.prev_action[0] == self.OBSERVE:
-                print("prev_action")
+                print("prev_action was OBSERVE")
                 measurement_position = self.convert_index_to_tuple(self.prev_action[1])
                 self.update_belief()
                 self.update_belief_with_obs(measurement_position, action_result)
+
             if self.calculate_risk_level(adv_action, adv_action_param, adv_action_result) >= 4:
                 print("Move")
                 action = self.MOVE
-                action_param = 4
+                action_param = self.get_best_index_to_move(adv_action_param)
+                self.star_position = action_param
             else:
                 print("Observe or shoot")
                 action = self.OBSERVE
                 action_param = 8
 
-
-            # Si Disparamos, Le dimos, No se movio
-            ## Vuelva y dispare
-            # Si Disparamos, Le dimos, Se movio
-            ## Disparamos con buena probabilidad o Observar
-
-
-        # if action == self.SHOOT:
-        #
-        # elif action == self.OBSERVE:
-        #     self.update_belief_with_obs(measurement_position, "rojo")
-        # elif action == self.MOVE:
-        #
-        #
         action_to_take = [action, action_param]
         self.prev_action = action_to_take
         return action_to_take
@@ -176,7 +164,7 @@ class AgenteAStar:
         else:
             # Adversary moved.
             risk_level = 0
-        print(risk_level)
+        print("Risk level:", risk_level)
         return risk_level
 
     def get_risk_level_given_distance(self, action, distance, adv_action_result):
@@ -194,21 +182,51 @@ class AgenteAStar:
                 risk_level = 1
         else:
             if distance == 0:
-                risk_level = 4 + (self.risk_level_for_colors[adv_action_result] *
-                                  self.sonar_prob_given_dist[distance][adv_action_result])
+                risk_level = 4 + (self.risk_level_for_colors[adv_action_result] * self.sonar_prob_given_dist[distance][adv_action_result])
             elif 1 <= distance <= 2:
-                risk_level = 3 + (self.risk_level_for_colors[adv_action_result] *
-                                  self.sonar_prob_given_dist[distance][adv_action_result])
+                risk_level = 3 + (self.risk_level_for_colors[adv_action_result] * self.sonar_prob_given_dist[distance][adv_action_result])
             elif 3 <= distance <= 4:
-                risk_level = 2 + (self.risk_level_for_colors[adv_action_result] *
-                                  self.sonar_prob_given_dist[distance][adv_action_result])
+                risk_level = 2 + (self.risk_level_for_colors[adv_action_result] * self.sonar_prob_given_dist[distance][adv_action_result])
             elif 5 <= distance <= 6:
-                risk_level = 1 + (self.risk_level_for_colors[adv_action_result] *
-                                  self.sonar_prob_given_dist[distance][adv_action_result])
+                risk_level = 1 + (self.risk_level_for_colors[adv_action_result] * self.sonar_prob_given_dist[distance][adv_action_result])
             else:
-                risk_level = 0 + (self.risk_level_for_colors[adv_action_result] *
-                                  self.sonar_prob_given_dist[distance][adv_action_result])
+                risk_level = 0 + (self.risk_level_for_colors[adv_action_result] * self.sonar_prob_given_dist[distance][adv_action_result])
         return risk_level
+
+    def get_best_index_to_move(self, adv_action_param):
+        adv_sight = self.convert_index_to_tuple(adv_action_param)
+        i = self.star_position[0]
+        j = self.star_position[1]
+        max_distance = 0
+        if i - 1 >= 0: # Up.
+            possible_position = (i - 1, j)
+            distance_to_adv_sight = self.calc_distance(possible_position, adv_sight)
+            distance_to_adv_sight += self.count_possible_movements(possible_position)
+            if distance_to_adv_sight > max_distance:
+                max_distance = distance_to_adv_sight
+                best_position = possible_position
+        if j + 1 <= 4: # Right.
+            possible_position = (i, j + 1)
+            distance_to_adv_sight = self.calc_distance(possible_position, adv_sight)
+            distance_to_adv_sight += self.count_possible_movements(possible_position)
+            if distance_to_adv_sight > max_distance:
+                max_distance = distance_to_adv_sight
+                best_position = possible_position
+        if i + 1 <= 4: # Down.
+            possible_position = (i + 1, j)
+            distance_to_adv_sight = self.calc_distance(possible_position, adv_sight)
+            distance_to_adv_sight += self.count_possible_movements(possible_position)
+            if distance_to_adv_sight > max_distance:
+                max_distance = distance_to_adv_sight
+                best_position = possible_position
+        if j - 1 >= 0: # Left.
+            possible_position = (i, j - 1)
+            distance_to_adv_sight = self.calc_distance(possible_position, adv_sight)
+            distance_to_adv_sight += self.count_possible_movements(possible_position)
+            if distance_to_adv_sight > max_distance:
+                max_distance = distance_to_adv_sight
+                best_position = possible_position
+        return self.convert_tuple_to_index(best_position)
 
 # Utils
 
@@ -232,3 +250,17 @@ class AgenteAStar:
         i = int((index - 1) / self.GRID_WIDTH_HEIGHT)
         j = (index - 1) - (i * self.GRID_WIDTH_HEIGHT)
         return (i, j)
+
+    def count_possible_movements(self, position):
+        possible_movements = 0
+        i = position[0]
+        j = position[1]
+        if i - 1 >= 0: # Up.
+            possible_movements += 1
+        if j + 1 <= 4: # Right.
+            possible_movements += 1
+        if i + 1 <= 4: # Down.
+            possible_movements += 1
+        if j - 1 >= 0: # Left.
+            possible_movements += 1
+        return possible_movements
