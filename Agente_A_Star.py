@@ -16,8 +16,8 @@ class AgenteAStar:
     GRID_WIDTH_HEIGHT = 5
     GRID_SIZE = 25
 
-    HIGH_RISK_LEVEL = 4
-    LIMIT_TO_SHOOT = 0.6
+    RISK_LEVEL_LIMIT = 4
+    MIN_PROB_TO_SHOOT = 0.16
 
     init_prob = 1 / GRID_SIZE
     one_half = 1 / 2
@@ -95,33 +95,56 @@ class AgenteAStar:
             adv_action_param = adversary_action[1]
             adv_action_result = adversary_action[2]
 
-            print("prev_action", self.prev_action)
-            if self.prev_action[0] == self.OBSERVE:
+            print("prev_action", self.prev_action, "result", action_result)
+            if self.prev_action[0] == self.SHOOT:
+                print("prev_action was SHOOT")
+                if action_result: # If action_result = 1, the adversary hit and the condition is True.
+                    # The agent hit the adversary.
+                    measurement_position = self.convert_index_to_tuple(self.prev_action[1])
+                    self.update_belief()
+                    self.update_belief_with_obs(measurement_position, self.GREEN)
+                    if adv_action != self.MOVE:
+                        # If the agent hit the adversary in the last turn and he didn't move away, then the agent must
+                        # hit again.
+                        action_to_take = self.prev_action
+                        # When this algorithm executes again, the current turn will be incremented by two.
+                        self.turns_count += 2
+                        # No more computation is necessary.
+                        return action_to_take
+                    # else:
+                else:
+                    # If the agent didn't hit the adversary in the last turn, then the probability for that particular
+                    # position and the near region get smoothed whereas the probability for the far region increases.
+                    self.execute_forward_algorithm(self.prev_action[1], self.YELLOW)
+            elif self.prev_action[0] == self.OBSERVE:
                 print("prev_action was OBSERVE")
-                measurement_position = self.convert_index_to_tuple(self.prev_action[1])
-                self.update_belief()
-                self.update_belief_with_obs(measurement_position, action_result)
+                self.execute_forward_algorithm(self.prev_action[1], action_result)
 
-            if self.calculate_risk_level(adv_action, adv_action_param, adv_action_result) >= self.HIGH_RISK_LEVEL:
+            if self.calculate_risk_level(adv_action, adv_action_param, adv_action_result) >= self.RISK_LEVEL_LIMIT:
                 print("Move")
                 action = self.MOVE
                 action_param = self.get_best_index_to_move(adv_action_param)
                 self.star_position = action_param
             else:
-                max_probability, max_elem_index, max_elem_position = \
-                    self.max_probability_and_index_and_position_in_table(self.belief_prev_t)
-                if max_probability > self.LIMIT_TO_SHOOT:
+                max_probability, max_elem_index = self.get_max_value_in_table_with_index(self.belief_prev_t)
+                if max_probability > self.MIN_PROB_TO_SHOOT:
                     print("Shoot")
                     action = self.SHOOT
+                    action_param = max_elem_index
                 else:
                     print("Observe")
                     action = self.OBSERVE
-                action_param = max_elem_index
+                    action_param = max_elem_index
 
         action_to_take = [action, action_param]
         self.prev_action = action_to_take
         self.turns_count += 2  # When this algorithm executes again, the current turn will be incremented by two.
         return action_to_take
+
+    def execute_forward_algorithm(self, measurement_index, measurement_color):
+        measurement_position = self.convert_index_to_tuple(measurement_index)
+        self.update_belief()
+        self.update_belief_with_obs(measurement_position, measurement_color)
 
     def update_belief(self):
         self.elapse_time()
@@ -274,8 +297,8 @@ class AgenteAStar:
             possible_movements += 1
         return possible_movements
 
-    def max_probability_and_index_and_position_in_table(self, table):
-        a = np.array(table)
-        index = a.argmax()
-        i, j = np.unravel_index(index, a.shape)
-        return a[i, j], index + 1, (i, j)
+    def get_max_value_in_table_with_index(self, table):
+        np_table = np.array(table)
+        max_element_index = np_table.argmax()
+        i, j = np.unravel_index(max_element_index, np_table.shape)
+        return np_table[i, j], (max_element_index + 1)
