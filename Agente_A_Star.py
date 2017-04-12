@@ -1,11 +1,19 @@
 import copy
 import random
 
+
+
+
 class AgenteAStar:
 
     SHOOT = 1
     OBSERVE = 2
     MOVE = 3
+
+    RED = "rojo"
+    ORANGE = "anaranjado"
+    YELLOW = "amarillo"
+    GREEN = "verde"
 
     GRID_WIDTH_HEIGHT = 5
     GRID_SIZE = 25
@@ -54,15 +62,16 @@ class AgenteAStar:
                        (4, 2): {(3, 2): one_third, (4, 1): one_third, (4, 3): one_third},
                        (4, 3): {(3, 3): one_third, (4, 2): one_third, (4, 4): one_third},
                        (4, 4): {(3, 4): one_half, (4, 3): one_half}}
-    sonar_prob_given_dist = {0: {"verde": 0.7, "amarillo": 0.15, "anaranjado": 0.1, "rojo": 0.05},
-                             1: {"verde": 0.65, "amarillo": 0.2, "anaranjado": 0.1, "rojo": 0.05},
-                             2: {"verde": 0.6, "amarillo": 0.2, "anaranjado": 0.15, "rojo": 0.05},
-                             3: {"verde": 0.55, "amarillo": 0.25, "anaranjado": 0.15, "rojo": 0.05},
-                             4: {"verde": 0.5, "amarillo": 0.25, "anaranjado": 0.2, "rojo": 0.05},
-                             5: {"verde": 0.5, "amarillo": 0.2, "anaranjado": 0.25, "rojo": 0.05},
-                             6: {"verde": 0.1, "amarillo": 0.15, "anaranjado": 0.5, "rojo": 0.25},
-                             7: {"verde": 0.15, "amarillo": 0.15, "anaranjado": 0.2, "rojo": 0.5},
-                             8: {"verde": 0.05, "amarillo": 0.15, "anaranjado": 0.2, "rojo": 0.6}}
+    sonar_prob_given_dist = {0: {GREEN: 0.4, YELLOW: 0.3, ORANGE: 0.2, RED: 0.1},
+                             1: {GREEN: 0.3, YELLOW: 0.4, ORANGE: 0.2, RED: 0.1},
+                             2: {GREEN: 0.2, YELLOW: 0.5, ORANGE: 0.2, RED: 0.1},
+                             3: {GREEN: 0.15, YELLOW: 0.25, ORANGE: 0.4, RED: 0.2},
+                             4: {GREEN: 0.1, YELLOW: 0.2, ORANGE: 0.25, RED: 0.45},
+                             5: {GREEN: 0.1, YELLOW: 0.2, ORANGE: 0.25, RED: 0.45},
+                             6: {GREEN: 0.1, YELLOW: 0.2, ORANGE: 0.25, RED: 0.45},
+                             7: {GREEN: 0.1, YELLOW: 0.2, ORANGE: 0.25, RED: 0.45},
+                             8: {GREEN: 0.1, YELLOW: 0.2, ORANGE: 0.25, RED: 0.45}}
+    risk_level_for_colors = {GREEN: 4, YELLOW: 3, ORANGE: 2, RED: 1}
 
     # Constructor.
     def __init__(self):
@@ -70,10 +79,10 @@ class AgenteAStar:
         self.turns_count = 0  # Variable to count the turns of the game
         self.measurement_position = ()
         self.prev_action = []
+        self.star_position = ()
 
     def get_action_to_take(self, current_player, action_result, adversary_action, star_position):
-
-
+        self.star_position = self.convert_index_to_tuple(star_position)
         if not adversary_action:
             # No adversary action means first turn.
             action = self.OBSERVE
@@ -83,6 +92,28 @@ class AgenteAStar:
             adv_action = adversary_action[0]
             adv_action_param = adversary_action[1]
             adv_action_result = adversary_action[2]
+
+            print("prev_action", self.prev_action)
+            if self.prev_action[0] == self.OBSERVE:
+                print("prev_action")
+                measurement_position = self.convert_index_to_tuple(self.prev_action[1])
+                self.update_belief()
+                self.update_belief_with_obs(measurement_position, action_result)
+            if self.calculate_risk_level(adv_action, adv_action_param, adv_action_result) >= 4:
+                print("Move")
+                action = self.MOVE
+                action_param = 4
+            else:
+                print("Observe or shoot")
+                action = self.OBSERVE
+                action_param = 8
+
+
+            # Si Disparamos, Le dimos, No se movio
+            ## Vuelva y dispare
+            # Si Disparamos, Le dimos, Se movio
+            ## Disparamos con buena probabilidad o Observar
+
 
         # if action == self.SHOOT:
         #
@@ -94,7 +125,6 @@ class AgenteAStar:
         action_to_take = [action, action_param]
         self.prev_action = action_to_take
         return action_to_take
-
 
     def update_belief(self):
         self.elapse_time()
@@ -113,9 +143,6 @@ class AgenteAStar:
                     if value.__contains__(position):
                         b_prime += (value[position] * self.belief_prev_t[key[0]][key[1]])
                 self.belief_after_t[position[0]][position[1]] = b_prime
-
-    def set_measurement_position(self, measurement_position):
-        self.measurement_position = measurement_position
 
     def update_belief_with_obs(self, measurement_position, measurement_color):
         self.incorporate_observation(measurement_position, measurement_color)
@@ -140,6 +167,48 @@ class AgenteAStar:
         for i in range(0, self.GRID_WIDTH_HEIGHT):
             for j in range(0, self.GRID_WIDTH_HEIGHT):
                 self.belief_after_t_and_obs[i][j] /= normalization_factor
+
+    def calculate_risk_level(self, adv_action, adv_action_param, adv_action_result):
+        if adv_action == self.SHOOT or adv_action == self.OBSERVE:
+            adv_sight = self.convert_index_to_tuple(adv_action_param)
+            distance_to_star_position = self.calc_distance(self.star_position, adv_sight)
+            risk_level = self.get_risk_level_given_distance(adv_action, distance_to_star_position, adv_action_result)
+        else:
+            # Adversary moved.
+            risk_level = 0
+        print(risk_level)
+        return risk_level
+
+    def get_risk_level_given_distance(self, action, distance, adv_action_result):
+        if action == self.SHOOT:
+            if distance == 0:
+                # Adversary shot us.
+                risk_level = 5
+            elif distance == 1:
+                risk_level = 4
+            elif 2 <= distance <= 4:
+                risk_level = 3
+            elif 5 <= distance <= 6:
+                risk_level = 2
+            else:
+                risk_level = 1
+        else:
+            if distance == 0:
+                risk_level = 4 + (self.risk_level_for_colors[adv_action_result] *
+                                  self.sonar_prob_given_dist[distance][adv_action_result])
+            elif 1 <= distance <= 2:
+                risk_level = 3 + (self.risk_level_for_colors[adv_action_result] *
+                                  self.sonar_prob_given_dist[distance][adv_action_result])
+            elif 3 <= distance <= 4:
+                risk_level = 2 + (self.risk_level_for_colors[adv_action_result] *
+                                  self.sonar_prob_given_dist[distance][adv_action_result])
+            elif 5 <= distance <= 6:
+                risk_level = 1 + (self.risk_level_for_colors[adv_action_result] *
+                                  self.sonar_prob_given_dist[distance][adv_action_result])
+            else:
+                risk_level = 0 + (self.risk_level_for_colors[adv_action_result] *
+                                  self.sonar_prob_given_dist[distance][adv_action_result])
+        return risk_level
 
 # Utils
 

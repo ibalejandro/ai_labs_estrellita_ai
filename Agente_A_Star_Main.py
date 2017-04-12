@@ -2,7 +2,6 @@ from Agente_A_Star import AgenteAStar
 
 agent = AgenteAStar()
 agent.update_belief()
-agent.set_measurement_position((0, 4))
-agent.update_belief_with_obs(agent.measurement_position, "rojo")
 
 print(agent.get_action_to_take(1, None, [], 15))
+print(agent.get_action_to_take(1, agent.RED, [1, 20, 0], 15))
