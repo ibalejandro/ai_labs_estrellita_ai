@@ -30,23 +30,23 @@ r = agent.get_action_to_take(1, None, [], star_position)
 # for i in range(1, 30):
 #     action = r[0]
 #     if action == agent.SHOOT:
-#         r = agent.get_action_to_take(1, bool(random.getrandbits(1)), [agent.MOVE, random.randint(1, 4), None], star_position)
+#         r = agent.get_action_to_take(1, bool(random.getrandbits(1)), [agent.OBSERVE, random.randint(1, 25), random.choice(sonar)], star_position)
 #     if action == agent.OBSERVE:
-#         r = agent.get_action_to_take(1, random.choice(sonar), [agent.MOVE, random.randint(1, 4), None], star_position)
+#         r = agent.get_action_to_take(1, random.choice(sonar), [agent.OBSERVE, random.randint(1, 25), random.choice(sonar)], star_position)
 #     elif action == agent.MOVE:
 #         star_position = r[1]
-#         r = agent.get_action_to_take(1, None, [agent.MOVE, random.randint(1, 4), None], star_position)
+#         r = agent.get_action_to_take(1, None, [agent.OBSERVE, random.randint(1, 25), random.choice(sonar)], star_position)
 #     print(r)
 #     print("========================================")
 
 for i in range(1, 30):
     action = r[0]
     if action == agent.SHOOT:
-        r = agent.get_action_to_take(1, bool(random.getrandbits(1)), [agent.OBSERVE, random.randint(1, 25), random.choice(sonar)], star_position)
+        r = agent.get_action_to_take(1, bool(random.getrandbits(1)), [agent.MOVE, random.randint(1, 4), None], star_position)
     if action == agent.OBSERVE:
-        r = agent.get_action_to_take(1, random.choice(sonar), [agent.OBSERVE, random.randint(1, 25), random.choice(sonar)], star_position)
+        r = agent.get_action_to_take(1, random.choice(sonar), [agent.MOVE, random.randint(1, 4), None], star_position)
     elif action == agent.MOVE:
         star_position = r[1]
-        r = agent.get_action_to_take(1, None, [agent.OBSERVE, random.randint(1, 25), random.choice(sonar)], star_position)
+        r = agent.get_action_to_take(1, None, [agent.MOVE, random.randint(1, 4), None], star_position)
     print(r)
     print("========================================")

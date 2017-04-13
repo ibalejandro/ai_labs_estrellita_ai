@@ -12,12 +12,13 @@ class AgenteAStar:
     ORANGE = "anaranjado"
     YELLOW = "amarillo"
     GREEN = "verde"
+    GOLD = "oro"
 
     GRID_WIDTH_HEIGHT = 5
     GRID_SIZE = 25
 
     RISK_LEVEL_LIMIT = 4
-    MIN_PROB_TO_SHOOT = 0.16
+    MIN_PROB_TO_SHOOT = 0.13
 
     init_prob = 1 / GRID_SIZE
     one_half = 1 / 2
@@ -72,6 +73,24 @@ class AgenteAStar:
                              6: {GREEN: 0.1, YELLOW: 0.2, ORANGE: 0.25, RED: 0.45},
                              7: {GREEN: 0.1, YELLOW: 0.2, ORANGE: 0.25, RED: 0.45},
                              8: {GREEN: 0.1, YELLOW: 0.2, ORANGE: 0.25, RED: 0.45}}
+    prob_given_exact_dist = {0: {GOLD: 0.9},
+                             1: {GOLD: 0.02},
+                             2: {GOLD: 0.01},
+                             3: {GOLD: 0.01},
+                             4: {GOLD: 0.01},
+                             5: {GOLD: 0.01},
+                             6: {GOLD: 0.01},
+                             7: {GOLD: 0.01},
+                             8: {GOLD: 0.01}}
+    prob_given_close_dist = {0: {GOLD: 0.02},
+                             1: {GOLD: 0.9},
+                             2: {GOLD: 0.02},
+                             3: {GOLD: 0.01},
+                             4: {GOLD: 0.01},
+                             5: {GOLD: 0.01},
+                             6: {GOLD: 0.01},
+                             7: {GOLD: 0.01},
+                             8: {GOLD: 0.01}}
     risk_level_for_colors = {GREEN: 4, YELLOW: 3, ORANGE: 2, RED: 1}
 
     # Constructor.
@@ -100,10 +119,8 @@ class AgenteAStar:
                 print("prev_action was SHOOT")
                 if action_result: # If action_result = 1, the adversary hit and the condition is True.
                     # The agent hit the adversary.
-                    measurement_position = self.convert_index_to_tuple(self.prev_action[1])
-                    self.update_belief()
-                    self.update_belief_with_obs(measurement_position, self.GREEN)
                     if adv_action != self.MOVE:
+                        self.execute_forward_algorithm(self.prev_action[1], self.GOLD, self.prob_given_exact_dist)
                         # If the agent hit the adversary in the last turn and he didn't move away, then the agent must
                         # hit again.
                         action_to_take = self.prev_action
@@ -111,14 +128,15 @@ class AgenteAStar:
                         self.turns_count += 2
                         # No more computation is necessary.
                         return action_to_take
-                    # else:
+                    else:
+                        self.execute_forward_algorithm(self.prev_action[1], self.GOLD, self.prob_given_close_dist)
                 else:
                     # If the agent didn't hit the adversary in the last turn, then the probability for that particular
                     # position and the near region get smoothed whereas the probability for the far region increases.
-                    self.execute_forward_algorithm(self.prev_action[1], self.YELLOW)
+                    self.execute_forward_algorithm(self.prev_action[1], self.YELLOW, self.sonar_prob_given_dist)
             elif self.prev_action[0] == self.OBSERVE:
                 print("prev_action was OBSERVE")
-                self.execute_forward_algorithm(self.prev_action[1], action_result)
+                self.execute_forward_algorithm(self.prev_action[1], action_result, self.sonar_prob_given_dist)
 
             if self.calculate_risk_level(adv_action, adv_action_param, adv_action_result) >= self.RISK_LEVEL_LIMIT:
                 print("Move")
@@ -141,10 +159,10 @@ class AgenteAStar:
         self.turns_count += 2  # When this algorithm executes again, the current turn will be incremented by two.
         return action_to_take
 
-    def execute_forward_algorithm(self, measurement_index, measurement_color):
+    def execute_forward_algorithm(self, measurement_index, measurement_color, prob_table):
         measurement_position = self.convert_index_to_tuple(measurement_index)
         self.update_belief()
-        self.update_belief_with_obs(measurement_position, measurement_color)
+        self.update_belief_with_obs(measurement_position, measurement_color, prob_table)
 
     def update_belief(self):
         self.elapse_time()
@@ -164,22 +182,22 @@ class AgenteAStar:
                         b_prime += (value[position] * self.belief_prev_t[key[0]][key[1]])
                 self.belief_after_t[position[0]][position[1]] = b_prime
 
-    def update_belief_with_obs(self, measurement_position, measurement_color):
-        self.incorporate_observation(measurement_position, measurement_color)
+    def update_belief_with_obs(self, measurement_position, measurement_color, prob_table):
+        self.incorporate_observation(measurement_position, measurement_color, prob_table)
         self.belief_prev_t = copy.deepcopy(self.belief_after_t_and_obs)
         print("-----------")
         print("UPDATED BELIEF AFTER OBSERVATION:")
         print("-----------")
         self.print_formatted_grid(self.belief_after_t_and_obs)
 
-    def incorporate_observation(self, measurement_position, measurement_color):
+    def incorporate_observation(self, measurement_position, measurement_color, prob_table):
         normalization_factor = 0
         for i in range(0, self.GRID_WIDTH_HEIGHT):
             for j in range(0, self.GRID_WIDTH_HEIGHT):
                 position = (i, j)
                 dist_to_measurement = self.calc_distance(measurement_position, position)
                 prob_color_given_dist_to_measurement = \
-                    self.sonar_prob_given_dist[dist_to_measurement][measurement_color]
+                    prob_table[dist_to_measurement][measurement_color]
                 b_prime = self.belief_after_t[position[0]][position[1]]
                 self.belief_after_t_and_obs[position[0]][position[1]] = prob_color_given_dist_to_measurement * b_prime
                 normalization_factor += self.belief_after_t_and_obs[position[0]][position[1]]
