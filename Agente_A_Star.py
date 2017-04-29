@@ -28,6 +28,8 @@ class AgenteAStar:
     FA = "Forward Algorithm"
     PF = "Particle Filtering"
 
+    PARTICLES_QUANTITY = 50
+
     belief_prev_t = [[init_prob, init_prob, init_prob, init_prob, init_prob],
                      [init_prob, init_prob, init_prob, init_prob, init_prob],
                      [init_prob, init_prob, init_prob, init_prob, init_prob],
@@ -43,6 +45,21 @@ class AgenteAStar:
                               [init_prob, init_prob, init_prob, init_prob, init_prob],
                               [init_prob, init_prob, init_prob, init_prob, init_prob],
                               [init_prob, init_prob, init_prob, init_prob, init_prob]]
+    start_particles = [[0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0]]
+    particles_after_t = [[0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0]]
+    empty_grid = [[0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0]]
     transition_prob = {(0, 0): {(0, 1): one_half, (1, 0): one_half},
                        (0, 1): {(0, 0): one_third, (0, 2): one_third, (1, 1): one_third},
                        (0, 2): {(0, 1): one_third, (0, 3): one_third, (1, 2): one_third},
@@ -117,8 +134,10 @@ class AgenteAStar:
                     if action_result:  # If action_result = 1, the adversary was hit and the condition is True.
                         # The agent hit the adversary.
                         # The belief update algorithm changes when the adversary is hit for the first time.
-                        # self.belief_update_algorithm = self.PF
-                        # TODO Put all the particles on that position (prev_action[1]).
+                        self.belief_update_algorithm = self.PF
+                        # The whole particles are agglomerated in the position the agent hit the adversary.
+                        tuple_hit = self.convert_index_to_tuple(self.prev_action[1])
+                        self.start_particles[tuple_hit[0]][tuple_hit[1]] = self.PARTICLES_QUANTITY
                         if adv_action != self.MOVE:
                             # If the agent hit the adversary in the last turn and he didn't move away, then the agent
                             # must shoot on the same position and hit again.
@@ -127,25 +146,25 @@ class AgenteAStar:
                             # The action to take is the same as the previous one. No more computation is necessary.
                             return action_to_take
                         else:
-                            # TODO Implement Particle Filtering.
-                            delete_this = 0
+                            # The adversary was hit and he moved away. An update using Particle Filtering is simulated
+                            # with a sensor YELLOW observation on the previous position of the adversary (which is good
+                            # for the neighbors of that position due to distance = 1).
+                            self.execute_particle_filtering(self.prev_action[1], self.YELLOW)
                     else:
                         # If the agent didn't hit the adversary in the last turn, then the probability for that
                         # particular position and the near region get smoothed whereas the probability for the far
                         # region increases.
                         if self.belief_update_algorithm == self.FA:
-                            self.execute_forward_algorithm(self.prev_action[1], self.YELLOW)
+                            self.execute_forward_algorithm(self.prev_action[1], self.ORANGE)
                         else:
-                            # TODO self.execute_particle_filtering(self.prev_action[1], self.YELLOW)
-                            delete_this = 0
+                            self.execute_particle_filtering(self.prev_action[1], self.ORANGE)
                 elif self.prev_action[0] == self.OBSERVE:
                     # The belief is updated given the measurement position and the observed color.
                     print("Previous action was OBSERVE.")
                     if self.belief_update_algorithm == self.FA:
                         self.execute_forward_algorithm(self.prev_action[1], action_result)
                     else:
-                        # TODO self.execute_particle_filtering(self.prev_action[1], action_result)
-                        delete_this = 0
+                        self.execute_particle_filtering(self.prev_action[1], action_result)
 
                 if self.calculate_risk_level(adv_action, adv_action_param, adv_action_result) >= self.RISK_LEVEL_LIMIT:
                     print("The agent is at risk and it has to MOVE.")
@@ -154,11 +173,7 @@ class AgenteAStar:
                     self.star_position = action_param  # The star position is updated with that movement.
                 else:
                     # The agent is not at risk.
-                    if self.belief_update_algorithm == self.FA:
-                        max_probability, max_elem_index = self.get_max_value_in_table_with_index(self.belief_prev_t)
-                    else:
-                        # TODO max_probability, max_elem_index = self.get_max_value_in_table_with_index(self.belief_prev_t_particle_filtering)
-                        delete_this = 0
+                    max_probability, max_elem_index = self.get_max_value_in_table_with_index(self.belief_prev_t)
                     if max_probability > self.MIN_PROB_TO_SHOOT:
                         print("The agent has to SHOOT.")
                         action = self.SHOOT
@@ -231,6 +246,95 @@ class AgenteAStar:
         for i in range(0, self.GRID_WIDTH_HEIGHT):
             for j in range(0, self.GRID_WIDTH_HEIGHT):
                 self.belief_after_t_and_obs[i][j] /= normalization_factor
+
+    def execute_particle_filtering(self, measurement_index, measurement_color):
+        measurement_position = self.convert_index_to_tuple(measurement_index)
+        self.update_belief_using_pf()
+        self.update_belief_with_obs_using_pf(measurement_position, measurement_color)
+        self.resample_particles()
+
+    # Executes the elapse time phase of the Particle Filtering and replaces the previous belief.
+    def update_belief_using_pf(self):
+        self.elapse_time_using_pf()
+        self.start_particles = copy.deepcopy(self.particles_after_t)
+        # The grid after elapsing time has to be clean to avoid accumulating more particles than exist.
+        self.particles_after_t = copy.deepcopy(self.empty_grid)
+        print("-----------")
+        print("UPDATED BELIEF USING PF AFTER ELAPSING TIME:")
+        print("-----------")
+        self.print_formatted_grid(self.start_particles)
+
+    def elapse_time_using_pf(self):
+        for i in range(0, self.GRID_WIDTH_HEIGHT):
+            for j in range(0, self.GRID_WIDTH_HEIGHT):
+                position = (i, j)
+                # Loop over every particle on that position.
+                count = 1
+                while count <= self.start_particles[position[0]][position[1]]:
+                    next_position = None
+                    cumulative_prob = 0
+                    random_value = random.random()  # Random float x, 0.0 <= x < 1.0.
+                    for key, value in self.transition_prob[position].items():
+                        # Value is the transition probability from the position being analyzed to the key position.
+                        cumulative_prob += value
+                        if random_value <= cumulative_prob:
+                            next_position = key
+                            break  # The next position for the current particle was found.
+                    self.start_particles[position[0]][position[1]] -= 1  # Particle goes away from that position.
+                    # Particle is placed on that position.
+                    self.particles_after_t[next_position[0]][next_position[1]] += 1
+                    count += 1
+
+    def update_belief_with_obs_using_pf(self, measurement_position, measurement_color):
+        self.incorporate_observation_using_pf(measurement_position, measurement_color)
+        # The original belief table is updated after elapsing time and incorporating observation.
+        self.belief_prev_t = copy.deepcopy(self.belief_after_t_and_obs)
+        print("-----------")
+        print("UPDATED BELIEF AFTER OBSERVATION USING PF:")
+        print("-----------")
+        self.print_formatted_grid(self.belief_after_t_and_obs)
+
+    def incorporate_observation_using_pf(self, measurement_position, measurement_color):
+        normalization_factor = 0
+        for i in range(0, self.GRID_WIDTH_HEIGHT):
+            for j in range(0, self.GRID_WIDTH_HEIGHT):
+                position = (i, j)
+                dist_to_measurement = self.calc_distance(measurement_position, position)
+                prob_color_given_dist_to_measurement \
+                    = self.sonar_prob_given_dist[dist_to_measurement][measurement_color]
+                number_of_particles = self.start_particles[position[0]][position[1]]
+                # The number of particles is weighted with the probability of the observed color given the distance.
+                self.belief_after_t_and_obs[position[0]][position[1]] = prob_color_given_dist_to_measurement * \
+                                                                        number_of_particles
+                normalization_factor += self.belief_after_t_and_obs[position[0]][position[1]]
+        # Normalization.
+        for i in range(0, self.GRID_WIDTH_HEIGHT):
+            for j in range(0, self.GRID_WIDTH_HEIGHT):
+                self.belief_after_t_and_obs[i][j] /= normalization_factor
+
+    # Particles are created again but using the current distribution, not the uniform one.
+    def resample_particles(self):
+        self.start_particles = copy.deepcopy(self.empty_grid)
+        count = 1
+        while count <= self.PARTICLES_QUANTITY:
+            position_assigned = None
+            cumulative_prob = 0
+            random_value = random.random()  # Random float x, 0.0 <= x < 1.0.
+            for i in range(0, self.GRID_WIDTH_HEIGHT):
+                for j in range(0, self.GRID_WIDTH_HEIGHT):
+                    cumulative_prob += self.belief_after_t_and_obs[i][j]
+                    if random_value <= cumulative_prob:
+                        position_assigned = (i, j)
+                        break
+                if position_assigned is not None:
+                    # A particle is created in the assigned position.
+                    self.start_particles[position_assigned[0]][position_assigned[1]] += 1
+                    break
+            count += 1
+        print("-----------")
+        print("UPDATED PARTICLES AFTER OBSERVATION AND RESAMPLING:")
+        print("-----------")
+        self.print_formatted_grid(self.start_particles)
 
     def calculate_risk_level(self, adv_action, adv_action_param, adv_action_result):
         if adv_action == self.SHOOT or adv_action == self.OBSERVE:
