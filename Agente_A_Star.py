@@ -2,6 +2,7 @@ import copy
 import random
 import numpy as np
 
+
 class AgenteAStar:
 
     SHOOT = 1
@@ -12,7 +13,6 @@ class AgenteAStar:
     ORANGE = "anaranjado"
     YELLOW = "amarillo"
     GREEN = "verde"
-    GOLD = "oro"
 
     GRID_WIDTH_HEIGHT = 5
     GRID_SIZE = 25
@@ -24,6 +24,10 @@ class AgenteAStar:
     one_half = 1 / 2
     one_third = 1 / 3
     one_fourth = 1 / 4
+
+    FA = "Forward Algorithm"
+    PF = "Particle Filtering"
+
     belief_prev_t = [[init_prob, init_prob, init_prob, init_prob, init_prob],
                      [init_prob, init_prob, init_prob, init_prob, init_prob],
                      [init_prob, init_prob, init_prob, init_prob, init_prob],
@@ -64,106 +68,118 @@ class AgenteAStar:
                        (4, 2): {(3, 2): one_third, (4, 1): one_third, (4, 3): one_third},
                        (4, 3): {(3, 3): one_third, (4, 2): one_third, (4, 4): one_third},
                        (4, 4): {(3, 4): one_half, (4, 3): one_half}}
-    sonar_prob_given_dist = {0: {GREEN: 0.4, YELLOW: 0.3, ORANGE: 0.2, RED: 0.1},
-                             1: {GREEN: 0.3, YELLOW: 0.4, ORANGE: 0.2, RED: 0.1},
-                             2: {GREEN: 0.2, YELLOW: 0.5, ORANGE: 0.2, RED: 0.1},
-                             3: {GREEN: 0.15, YELLOW: 0.25, ORANGE: 0.4, RED: 0.2},
-                             4: {GREEN: 0.1, YELLOW: 0.2, ORANGE: 0.25, RED: 0.45},
-                             5: {GREEN: 0.1, YELLOW: 0.2, ORANGE: 0.25, RED: 0.45},
-                             6: {GREEN: 0.1, YELLOW: 0.2, ORANGE: 0.25, RED: 0.45},
-                             7: {GREEN: 0.1, YELLOW: 0.2, ORANGE: 0.25, RED: 0.45},
-                             8: {GREEN: 0.1, YELLOW: 0.2, ORANGE: 0.25, RED: 0.45}}
-    prob_given_exact_dist = {0: {GOLD: 0.9},
-                             1: {GOLD: 0.02},
-                             2: {GOLD: 0.01},
-                             3: {GOLD: 0.01},
-                             4: {GOLD: 0.01},
-                             5: {GOLD: 0.01},
-                             6: {GOLD: 0.01},
-                             7: {GOLD: 0.01},
-                             8: {GOLD: 0.01}}
-    prob_given_close_dist = {0: {GOLD: 0.02},
-                             1: {GOLD: 0.9},
-                             2: {GOLD: 0.02},
-                             3: {GOLD: 0.01},
-                             4: {GOLD: 0.01},
-                             5: {GOLD: 0.01},
-                             6: {GOLD: 0.01},
-                             7: {GOLD: 0.01},
-                             8: {GOLD: 0.01}}
+    sonar_prob_given_dist = {0: {GREEN: 0.70, YELLOW: 0.15, ORANGE: 0.1, RED: 0.05},
+                             1: {GREEN: 0.17, YELLOW: 0.6, ORANGE: 0.17, RED: 0.06},
+                             2: {GREEN: 0.06, YELLOW: 0.17, ORANGE: 0.6, RED: 0.17},
+                             3: {GREEN: 0.05, YELLOW: 0.12, ORANGE: 0.23, RED: 0.6},
+                             4: {GREEN: 0.05, YELLOW: 0.1, ORANGE: 0.15, RED: 0.8},
+                             5: {GREEN: 0.05, YELLOW: 0.1, ORANGE: 0.15, RED: 0.8},
+                             6: {GREEN: 0.05, YELLOW: 0.1, ORANGE: 0.15, RED: 0.8},
+                             7: {GREEN: 0.05, YELLOW: 0.1, ORANGE: 0.15, RED: 0.8},
+                             8: {GREEN: 0.05, YELLOW: 0.1, ORANGE: 0.15, RED: 0.8}}
+    # Every color returned to the adversary's measurement has a different associated risk for the agent.
     risk_level_for_colors = {GREEN: 4, YELLOW: 3, ORANGE: 2, RED: 1}
 
     # Constructor.
     def __init__(self):
         self.current_player = 0  # There is no current_player at that moment.
-        self.turns_count = 0  # Variable to count the turns of the game
+        self.turns_count = 0  # Variable to count the turns of the game.
         self.prev_action = []
-        self.star_position = ()
+        self.star_position = ()  # The start position of the star.
+        self.belief_update_algorithm = self.FA  # The algorithm that is being used to update beliefs.
 
     def get_action_to_take(self, current_player, action_result, adversary_action, star_position):
         self.current_player = current_player
         self.star_position = self.convert_index_to_tuple(star_position)
-        if not adversary_action:
-            print("Random observation")
-            # No adversary action means first turn.
+
+        if adversary_action[0] is None:
+            # It only occurs in the first turn of the game (no adversary action). The most intelligent action is to
+            # observe anywhere.
+            print("First turn = Random observation.")
             action = self.OBSERVE
             # At the beginning, the adversary could be in any of the 25 positions of the grid with equal probability.
             action_param = random.randint(1, self.GRID_SIZE)
         else:
-            adv_action = adversary_action[0]
-            adv_action_param = adversary_action[1]
-            adv_action_result = adversary_action[2]
-
-            print("prev_action", self.prev_action, "result", action_result)
-            if self.prev_action[0] == self.SHOOT:
-                print("prev_action was SHOOT")
-                if action_result: # If action_result = 1, the adversary hit and the condition is True.
-                    # The agent hit the adversary.
-                    if adv_action != self.MOVE:
-                        self.execute_forward_algorithm(self.prev_action[1], self.GOLD, self.prob_given_exact_dist)
-                        # If the agent hit the adversary in the last turn and he didn't move away, then the agent must
-                        # hit again.
-                        action_to_take = self.prev_action
-                        # When this algorithm executes again, the current turn will be incremented by two.
-                        self.turns_count += 2
-                        # No more computation is necessary.
-                        return action_to_take
-                    else:
-                        self.execute_forward_algorithm(self.prev_action[1], self.GOLD, self.prob_given_close_dist)
-                else:
-                    # If the agent didn't hit the adversary in the last turn, then the probability for that particular
-                    # position and the near region get smoothed whereas the probability for the far region increases.
-                    self.execute_forward_algorithm(self.prev_action[1], self.YELLOW, self.sonar_prob_given_dist)
-            elif self.prev_action[0] == self.OBSERVE:
-                print("prev_action was OBSERVE")
-                self.execute_forward_algorithm(self.prev_action[1], action_result, self.sonar_prob_given_dist)
-
-            if self.calculate_risk_level(adv_action, adv_action_param, adv_action_result) >= self.RISK_LEVEL_LIMIT:
-                print("Move")
-                action = self.MOVE
-                action_param = self.get_best_index_to_move(adv_action_param)
-                self.star_position = action_param
+            if not self.prev_action:
+                # There was no previous action of the agent. It´s its first turn as the second player.
+                print("First turn for second player = Random observation.")
+                action = self.OBSERVE
+                action_param = random.randint(1, self.GRID_SIZE)
             else:
-                max_probability, max_elem_index = self.get_max_value_in_table_with_index(self.belief_prev_t)
-                if max_probability > self.MIN_PROB_TO_SHOOT:
-                    print("Shoot")
-                    action = self.SHOOT
-                    action_param = max_elem_index
+                print("Agent previous action =", self.prev_action, "Result for that action =", action_result)
+                # The adversary action is decomposed into three parameters.
+                adv_action = adversary_action[0]
+                adv_action_param = adversary_action[1]
+                adv_action_result = adversary_action[2]
+
+                if self.prev_action[0] == self.SHOOT:
+                    print("Previous action was SHOOT.")
+                    if action_result:  # If action_result = 1, the adversary was hit and the condition is True.
+                        # The agent hit the adversary.
+                        # The belief update algorithm changes when the adversary is hit for the first time.
+                        # self.belief_update_algorithm = self.PF
+                        # TODO Put all the particles on that position (prev_action[1]).
+                        if adv_action != self.MOVE:
+                            # If the agent hit the adversary in the last turn and he didn't move away, then the agent
+                            # must shoot on the same position and hit again.
+                            action_to_take = self.prev_action
+                            self.turns_count += 2
+                            # The action to take is the same as the previous one. No more computation is necessary.
+                            return action_to_take
+                        else:
+                            # TODO Implement Particle Filtering.
+                            delete_this = 0
+                    else:
+                        # If the agent didn't hit the adversary in the last turn, then the probability for that
+                        # particular position and the near region get smoothed whereas the probability for the far
+                        # region increases.
+                        if self.belief_update_algorithm == self.FA:
+                            self.execute_forward_algorithm(self.prev_action[1], self.YELLOW)
+                        else:
+                            # TODO self.execute_particle_filtering(self.prev_action[1], self.YELLOW)
+                            delete_this = 0
+                elif self.prev_action[0] == self.OBSERVE:
+                    # The belief is updated given the measurement position and the observed color.
+                    print("Previous action was OBSERVE.")
+                    if self.belief_update_algorithm == self.FA:
+                        self.execute_forward_algorithm(self.prev_action[1], action_result)
+                    else:
+                        # TODO self.execute_particle_filtering(self.prev_action[1], action_result)
+                        delete_this = 0
+
+                if self.calculate_risk_level(adv_action, adv_action_param, adv_action_result) >= self.RISK_LEVEL_LIMIT:
+                    print("The agent is at risk and it has to MOVE.")
+                    action = self.MOVE
+                    action_param = self.get_best_index_to_move(adv_action_param)
+                    self.star_position = action_param  # The star position is updated with that movement.
                 else:
-                    print("Observe")
-                    action = self.OBSERVE
-                    action_param = max_elem_index
+                    # The agent is not at risk.
+                    if self.belief_update_algorithm == self.FA:
+                        max_probability, max_elem_index = self.get_max_value_in_table_with_index(self.belief_prev_t)
+                    else:
+                        # TODO max_probability, max_elem_index = self.get_max_value_in_table_with_index(self.belief_prev_t_particle_filtering)
+                        delete_this = 0
+                    if max_probability > self.MIN_PROB_TO_SHOOT:
+                        print("The agent has to SHOOT.")
+                        action = self.SHOOT
+                        action_param = max_elem_index
+                    else:
+                        # The agent is not sure enough to SHOOT. The probabilities are not very significant.
+                        print("The agent has to OBSERVE.")
+                        action = self.OBSERVE
+                        action_param = max_elem_index
 
         action_to_take = [action, action_param]
-        self.prev_action = action_to_take
+        self.prev_action = action_to_take  # The action that is going to be taken is stored for the next turn.
         self.turns_count += 2  # When this algorithm executes again, the current turn will be incremented by two.
         return action_to_take
 
-    def execute_forward_algorithm(self, measurement_index, measurement_color, prob_table):
+    def execute_forward_algorithm(self, measurement_index, measurement_color):
         measurement_position = self.convert_index_to_tuple(measurement_index)
         self.update_belief()
-        self.update_belief_with_obs(measurement_position, measurement_color, prob_table)
+        self.update_belief_with_obs(measurement_position, measurement_color)
 
+    # Executes the elapse time phase of the Forward Algorithm and replaces the previous belief.
     def update_belief(self):
         self.elapse_time()
         self.belief_prev_t = copy.deepcopy(self.belief_after_t)
@@ -179,26 +195,36 @@ class AgenteAStar:
                 b_prime = 0
                 for key, value in self.transition_prob.items():
                     if value.__contains__(position):
+                        # It is possible to go from the current value (a position) to the position (i, j) being
+                        # analyzed.
+                        # Value[position] is the probability to go from the value (a position) to the position (i, j)
+                        # being analyzed.
+                        # self.belief_prev_t[key[0]][key[1]] means the probability of the adversary being in that
+                        # position (key[0]], [key[1]) on the previous time (previous belief_grid).
                         b_prime += (value[position] * self.belief_prev_t[key[0]][key[1]])
+                # The position being analyzed is updated with its new belief value.
                 self.belief_after_t[position[0]][position[1]] = b_prime
 
-    def update_belief_with_obs(self, measurement_position, measurement_color, prob_table):
-        self.incorporate_observation(measurement_position, measurement_color, prob_table)
+    def update_belief_with_obs(self, measurement_position, measurement_color):
+        self.incorporate_observation(measurement_position, measurement_color)
+        # The original belief table is updated after elapsing time and incorporating observation.
         self.belief_prev_t = copy.deepcopy(self.belief_after_t_and_obs)
         print("-----------")
         print("UPDATED BELIEF AFTER OBSERVATION:")
         print("-----------")
         self.print_formatted_grid(self.belief_after_t_and_obs)
 
-    def incorporate_observation(self, measurement_position, measurement_color, prob_table):
+    def incorporate_observation(self, measurement_position, measurement_color):
         normalization_factor = 0
         for i in range(0, self.GRID_WIDTH_HEIGHT):
             for j in range(0, self.GRID_WIDTH_HEIGHT):
                 position = (i, j)
                 dist_to_measurement = self.calc_distance(measurement_position, position)
                 prob_color_given_dist_to_measurement = \
-                    prob_table[dist_to_measurement][measurement_color]
+                    self.sonar_prob_given_dist[dist_to_measurement][measurement_color]
                 b_prime = self.belief_after_t[position[0]][position[1]]
+                # The belief of the position being analyzed (i, j) after elapsing time is updated with the observation
+                # incorporation.
                 self.belief_after_t_and_obs[position[0]][position[1]] = prob_color_given_dist_to_measurement * b_prime
                 normalization_factor += self.belief_after_t_and_obs[position[0]][position[1]]
         # Normalization.
@@ -220,7 +246,7 @@ class AgenteAStar:
     def get_risk_level_given_distance(self, action, distance, adv_action_result):
         if action == self.SHOOT:
             if distance == 0:
-                # Adversary shot us.
+                # Adversary shot the agent.
                 risk_level = 5
             elif distance == 1:
                 risk_level = 4
@@ -231,6 +257,8 @@ class AgenteAStar:
             else:
                 risk_level = 1
         else:
+            # Adversary observed.
+            # Every risk is weighted with the risk level according to the observed color.
             if distance == 0:
                 risk_level = 4 + (self.risk_level_for_colors[adv_action_result] * self.sonar_prob_given_dist[distance][adv_action_result])
             elif 1 <= distance <= 2:
@@ -247,36 +275,38 @@ class AgenteAStar:
         adv_sight = self.convert_index_to_tuple(adv_action_param)
         i = self.star_position[0]
         j = self.star_position[1]
+        # Allows to check which is the movement that achieves the maximum distance to the adversary sight in combination
+        # with the maximum posterior possible movements.
         max_distance = 0
-        if i - 1 >= 0: # Up.
+        if i - 1 >= 0:  # Up.
             possible_position = (i - 1, j)
             distance_to_adv_sight = self.calc_distance(possible_position, adv_sight)
             distance_to_adv_sight += self.count_possible_movements(possible_position)
             if distance_to_adv_sight > max_distance:
                 max_distance = distance_to_adv_sight
                 best_position = possible_position
-        if j + 1 <= 4: # Right.
+        if j + 1 <= 4:  # Right.
             possible_position = (i, j + 1)
             distance_to_adv_sight = self.calc_distance(possible_position, adv_sight)
             distance_to_adv_sight += self.count_possible_movements(possible_position)
             if distance_to_adv_sight > max_distance:
                 max_distance = distance_to_adv_sight
                 best_position = possible_position
-        if i + 1 <= 4: # Down.
+        if i + 1 <= 4:  # Down.
             possible_position = (i + 1, j)
             distance_to_adv_sight = self.calc_distance(possible_position, adv_sight)
             distance_to_adv_sight += self.count_possible_movements(possible_position)
             if distance_to_adv_sight > max_distance:
                 max_distance = distance_to_adv_sight
                 best_position = possible_position
-        if j - 1 >= 0: # Left.
+        if j - 1 >= 0:  # Left.
             possible_position = (i, j - 1)
             distance_to_adv_sight = self.calc_distance(possible_position, adv_sight)
             distance_to_adv_sight += self.count_possible_movements(possible_position)
             if distance_to_adv_sight > max_distance:
                 max_distance = distance_to_adv_sight
                 best_position = possible_position
-        return self.convert_tuple_to_index(best_position)
+        return self.convert_tuple_to_index(best_position)  # Returns the best position as an index.
 
 # Utils
 
@@ -305,13 +335,13 @@ class AgenteAStar:
         possible_movements = 0
         i = position[0]
         j = position[1]
-        if i - 1 >= 0: # Up.
+        if i - 1 >= 0:  # Up.
             possible_movements += 1
-        if j + 1 <= 4: # Right.
+        if j + 1 <= 4:  # Right.
             possible_movements += 1
-        if i + 1 <= 4: # Down.
+        if i + 1 <= 4:  # Down.
             possible_movements += 1
-        if j - 1 >= 0: # Left.
+        if j - 1 >= 0:  # Left.
             possible_movements += 1
         return possible_movements
 

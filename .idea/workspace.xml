@@ -3,6 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="1c9ebe77-c444-4ceb-a033-2b84181aaf66" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Agente_A_Star.py" afterPath="$PROJECT_DIR$/Agente_A_Star.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -23,8 +24,8 @@
       <file leaf-file-name="Agente_A_Star.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Agente_A_Star.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1365">
-              <caret line="147" column="59" lean-forward="false" selection-start-line="147" selection-start-column="42" selection-end-line="147" selection-end-column="59" />
+            <state relative-caret-position="-840">
+              <caret line="5" column="17" lean-forward="false" selection-start-line="5" selection-start-column="6" selection-end-line="5" selection-end-column="17" />
               <folding>
                 <element signature="e#0#11#0" expanded="true" />
               </folding>
@@ -41,18 +42,6 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Agente_A_Star_Main.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Agente_A_Star_Main.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="387">
-              <caret line="48" column="12" lean-forward="false" selection-start-line="48" selection-start-column="12" selection-end-line="48" selection-end-column="12" />
-              <folding>
-                <element signature="e#0#37#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
     </leaf>
   </component>
   <component name="FileTemplateManagerImpl">
@@ -64,9 +53,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>bes</find>
-      <find>star_position</find>
-      <find>MOVE</find>
       <find>0.110963441564</find>
       <find>0.11096344156</find>
       <find>measurement_position</find>
@@ -94,6 +80,9 @@
       <find>#Ciclo general del juego</find>
       <find>#Ciclo</find>
       <find>Ciclo</find>
+      <find>risk_level_for_colors</find>
+      <find>current_player</find>
+      <find>sonar_pro</find>
     </findStrings>
     <replaceStrings>
       <replace>one_half</replace>
@@ -111,8 +100,8 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/Agente_A_Star_Main.py" />
-        <option value="$PROJECT_DIR$/Agente_A_Star.py" />
         <option value="$PROJECT_DIR$/Coco2.ipynb" />
+        <option value="$PROJECT_DIR$/Agente_A_Star.py" />
       </list>
     </option>
   </component>
@@ -481,7 +470,7 @@
         <state relative-caret-position="705">
           <caret line="48" column="12" lean-forward="false" selection-start-line="48" selection-start-column="12" selection-end-line="48" selection-end-column="12" />
           <folding>
-            <element signature="e#0#37#0" expanded="true" />
+            <element signature="e#0#37#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -501,7 +490,7 @@
         <state relative-caret-position="705">
           <caret line="48" column="12" lean-forward="true" selection-start-line="48" selection-start-column="12" selection-end-line="48" selection-end-column="12" />
           <folding>
-            <element signature="e#0#37#0" expanded="true" />
+            <element signature="e#0#37#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -521,7 +510,7 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#0#37#0" expanded="true" />
+            <element signature="e#0#37#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -541,7 +530,7 @@
         <state relative-caret-position="144">
           <caret line="6" column="44" lean-forward="false" selection-start-line="6" selection-start-column="44" selection-end-line="6" selection-end-column="44" />
           <folding>
-            <element signature="e#0#37#0" expanded="true" />
+            <element signature="e#0#37#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -561,7 +550,7 @@
         <state relative-caret-position="120">
           <caret line="5" column="64" lean-forward="false" selection-start-line="5" selection-start-column="64" selection-end-line="5" selection-end-column="64" />
           <folding>
-            <element signature="e#0#37#0" expanded="true" />
+            <element signature="e#0#37#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -581,7 +570,7 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#0#37#0" expanded="true" />
+            <element signature="e#0#37#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -607,18 +596,18 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/Agente_A_Star_Main.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="387">
+        <state relative-caret-position="720">
           <caret line="48" column="12" lean-forward="false" selection-start-line="48" selection-start-column="12" selection-end-line="48" selection-end-column="12" />
           <folding>
-            <element signature="e#0#37#0" expanded="true" />
+            <element signature="e#0#37#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/Agente_A_Star.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1365">
-          <caret line="147" column="59" lean-forward="false" selection-start-line="147" selection-start-column="42" selection-end-line="147" selection-end-column="59" />
+        <state relative-caret-position="-840">
+          <caret line="5" column="17" lean-forward="false" selection-start-line="5" selection-start-column="6" selection-end-line="5" selection-end-column="17" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
           </folding>
