@@ -134,11 +134,13 @@ class AgenteAStar:
                     if action_result:  # If action_result = 1, the adversary was hit and the condition is True.
                         # The agent hit the adversary.
                         # The belief update algorithm changes when the adversary is hit for the first time.
+                        print("Belief update algorithm changed to Particle Filtering.")
                         self.belief_update_algorithm = self.PF
                         # The whole particles are agglomerated in the position the agent hit the adversary.
                         tuple_hit = self.convert_index_to_tuple(self.prev_action[1])
                         self.start_particles = copy.deepcopy(self.empty_grid)
                         self.start_particles[tuple_hit[0]][tuple_hit[1]] = self.PARTICLES_QUANTITY
+                        self.print_formatted_grid(self.start_particles)
                         if adv_action != self.MOVE:
                             # If the agent hit the adversary in the last turn and he didn't move away, then the agent
                             # must shoot on the same position and hit again.
@@ -158,6 +160,7 @@ class AgenteAStar:
                         if self.belief_update_algorithm == self.FA:
                             self.execute_forward_algorithm(self.prev_action[1], self.ORANGE)
                         else:
+                            self.redistribute_particles(self.prev_action[1])
                             self.execute_particle_filtering(self.prev_action[1], self.ORANGE)
                 elif self.prev_action[0] == self.OBSERVE:
                     # The belief is updated given the measurement position and the observed color.
@@ -248,6 +251,33 @@ class AgenteAStar:
             for j in range(0, self.GRID_WIDTH_HEIGHT):
                 self.belief_after_t_and_obs[i][j] /= normalization_factor
 
+    # Redistributes all particles in the given position when the agent shot and failed.
+    def redistribute_particles(self, index_for_redistribution):
+        delivery_position = self.convert_index_to_tuple(index_for_redistribution)
+        particles_in_delivery_position = self.start_particles[delivery_position[0]][delivery_position[1]]
+        if particles_in_delivery_position != self.PARTICLES_QUANTITY:
+            # The probability was distributed in various cells and not concentrated in an unique one.
+            print("Start particles before redistribution.")
+            self.print_formatted_grid(self.start_particles)
+            # The adversary was not in that position. Therefore, all particles on that position have to redistributed.
+            self.start_particles[delivery_position[0]][delivery_position[1]] = 0
+            remaining_particles = self.PARTICLES_QUANTITY - particles_in_delivery_position
+            for i in range(0, self.GRID_WIDTH_HEIGHT):
+                for j in range(0, self.GRID_WIDTH_HEIGHT):
+                    # Corresponding particles for every position are:
+                    # Number of particles in that position divided by the remaining particles on the grid.
+                    # Multiplied by the particles to redistribute.
+                    # Rounded to get only integer results (number of particles is an integer value).
+                    # It is done in order to redistribute particles proportionally to the existing ones.
+                    corresponding_particles = round((self.start_particles[i][j] / remaining_particles) *
+                                                    particles_in_delivery_position)
+                    print("Corresponding particles to position", i, j, "=", corresponding_particles)
+                    # Particles are added to that position according to the proportion of the already existing particles
+                    # there.
+                    self.start_particles[i][j] += corresponding_particles
+        print("Start particles after redistribution.")
+        self.print_formatted_grid(self.start_particles)
+
     def execute_particle_filtering(self, measurement_index, measurement_color):
         measurement_position = self.convert_index_to_tuple(measurement_index)
         self.update_belief_using_pf()
@@ -257,6 +287,10 @@ class AgenteAStar:
     # Executes the elapse time phase of the Particle Filtering and replaces the previous belief.
     def update_belief_using_pf(self):
         self.elapse_time_using_pf()
+        print("Start particles after elapsing time.")
+        self.print_formatted_grid(self.start_particles)
+        print("Particles after t.")
+        self.print_formatted_grid(self.particles_after_t)
         self.start_particles = copy.deepcopy(self.particles_after_t)
         # The grid after elapsing time has to be clean to avoid accumulating more particles than exist.
         self.particles_after_t = copy.deepcopy(self.empty_grid)
@@ -269,9 +303,11 @@ class AgenteAStar:
         for i in range(0, self.GRID_WIDTH_HEIGHT):
             for j in range(0, self.GRID_WIDTH_HEIGHT):
                 position = (i, j)
+                particles_in_position = self.start_particles[position[0]][position[1]]
                 # Loop over every particle on that position.
                 count = 1
-                while count <= self.start_particles[position[0]][position[1]]:
+                while count <= particles_in_position:
+                    print("Enter while in position", position[0], position[1], "for the", count, "time.")
                     next_position = None
                     cumulative_prob = 0
                     random_value = random.random()  # Random float x, 0.0 <= x < 1.0.
