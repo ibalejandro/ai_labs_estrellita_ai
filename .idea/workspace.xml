@@ -24,8 +24,8 @@
       <file leaf-file-name="Agente_A_Star.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Agente_A_Star.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="502">
-              <caret line="336" column="33" lean-forward="false" selection-start-line="336" selection-start-column="13" selection-end-line="336" selection-end-column="33" />
+            <state relative-caret-position="202">
+              <caret line="47" column="14" lean-forward="false" selection-start-line="47" selection-start-column="4" selection-end-line="47" selection-end-column="14" />
               <folding>
                 <element signature="e#0#11#0" expanded="true" />
               </folding>
@@ -53,8 +53,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>0.131493506494</find>
-      <find>0.0966038164471</find>
       <find>0.137909127872</find>
       <find>ran</find>
       <find>random</find>
@@ -83,6 +81,8 @@
       <find>pos_assigned</find>
       <find>todo</find>
       <find>format</find>
+      <find>partic</find>
+      <find>start_part</find>
     </findStrings>
     <replaceStrings>
       <replace>one_half</replace>
@@ -606,8 +606,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/Agente_A_Star.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="502">
-          <caret line="336" column="33" lean-forward="false" selection-start-line="336" selection-start-column="13" selection-end-line="336" selection-end-column="33" />
+        <state relative-caret-position="202">
+          <caret line="47" column="14" lean-forward="false" selection-start-line="47" selection-start-column="4" selection-end-line="47" selection-end-column="14" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
           </folding>

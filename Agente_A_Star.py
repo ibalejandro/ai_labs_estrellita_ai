@@ -137,6 +137,7 @@ class AgenteAStar:
                         self.belief_update_algorithm = self.PF
                         # The whole particles are agglomerated in the position the agent hit the adversary.
                         tuple_hit = self.convert_index_to_tuple(self.prev_action[1])
+                        self.start_particles = copy.deepcopy(self.empty_grid)
                         self.start_particles[tuple_hit[0]][tuple_hit[1]] = self.PARTICLES_QUANTITY
                         if adv_action != self.MOVE:
                             # If the agent hit the adversary in the last turn and he didn't move away, then the agent
