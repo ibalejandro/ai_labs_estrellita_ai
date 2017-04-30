@@ -106,6 +106,8 @@ class AgenteAStar:
         self.belief_update_algorithm = self.FA  # The algorithm that is being used to update beliefs.
 
     def get_action_to_take(self, current_player, action_result, adversary_action, star_position):
+        print("Before executing:")
+        print("Action result:", action_result, "Adversary action:", adversary_action)
         self.current_player = current_player
         self.star_position = self.convert_index_to_tuple(star_position)
 
@@ -147,6 +149,7 @@ class AgenteAStar:
                             action_to_take = self.prev_action
                             self.turns_count += 2
                             # The action to take is the same as the previous one. No more computation is necessary.
+                            print("Action to take:", action_to_take)
                             return action_to_take
                         else:
                             # The adversary was hit and he moved away. An update using Particle Filtering is simulated
@@ -191,6 +194,7 @@ class AgenteAStar:
         action_to_take = [action, action_param]
         self.prev_action = action_to_take  # The action that is going to be taken is stored for the next turn.
         self.turns_count += 2  # When this algorithm executes again, the current turn will be incremented by two.
+        print("Action to take:", action_to_take)
         return action_to_take
 
     def execute_forward_algorithm(self, measurement_index, measurement_color):
@@ -374,6 +378,7 @@ class AgenteAStar:
         self.print_formatted_grid(self.start_particles)
 
     def calculate_risk_level(self, adv_action, adv_action_param, adv_action_result):
+        print("Adversary action:", adv_action, "Adversary action param:", adv_action_param, "Adversary action result:", adv_action_result)
         if adv_action == self.SHOOT or adv_action == self.OBSERVE:
             adv_sight = self.convert_index_to_tuple(adv_action_param)
             distance_to_star_position = self.calc_distance(self.star_position, adv_sight)
