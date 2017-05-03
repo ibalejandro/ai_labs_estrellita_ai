@@ -23,8 +23,8 @@ Using some techniques learned in the second part of the AI course at Universidad
 
 ## Techniques
 The agent uses two techniques learned in the second part of the AI course at Universidad EAFIT to improve performance in a strategic way:
-  - **Forward Algorithm**: Hex is an adversarial game where every player is trying to occupy the most strategic positions on the board. With every action that Player 1 takes, he is trying to maximize his reward considering the future behavior of  Player 2, who will be trying to negatively affect Player 1 minimizing that reward. In this case, both players are supposed to play optimally.
-  - **Particle Filtering**: Due to the time constraint and considering that sometimes it is not necessary to visit all the nodes, this intelligent agent uses Alpha-Beta Pruning. Using this technique it is possible to limit the states that have to be evaluated in order to eliminate branches without analyzing them, because it can be known in advance that they are not going to influence the decisions in the top levels.
+  - **Forward Algorithm**: on this particular game, the idea is to keep track of the adversary actions and try to estimate its most likely location turn after turn. The Forward Algorithm is strategic to compute the distribution on the board for the adversary's star position when time passes and new evidence is discovered. As long as the hypothesis space is very large, this algorithm represents an good way to update the agent's belief.
+  - **Particle Filtering**: when the agent hits the adversary for the first time, the hypothesis space is reduced to a particular region of the grid. A set of particles is placed on the impacted position, so that the agent's belief can be updated more locally when time passes and new observations are incorporated. Knowing the adversary's transition probabilities is also an advantage to infer the next posible locations of the opponent. Particle filtering is strategic to concentrate the distribution and improve the probability of hitting again on the next turn.
 
 > When the agent hits the adversary for the first time, a transition to use Particle Filtering (local search) is executed.
 
@@ -64,4 +64,4 @@ This section is specific for the teacher of the AI course at Universidad EAFIT.
 5. Execute your Jupyter Notebook file and see the game progression. It's like **magic**!
 
 [Python]: <https://www.python.org/downloads/>
-[YouTube Video]: <https://youtu.be/ckJcKDS26VU>
+[YouTube Video]: <https://youtu.be/e2s5pg0WLII>
