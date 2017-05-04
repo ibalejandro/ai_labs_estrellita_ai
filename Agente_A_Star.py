@@ -89,11 +89,11 @@ class AgenteAStar:
                              1: {GREEN: 0.17, YELLOW: 0.6, ORANGE: 0.17, RED: 0.06},
                              2: {GREEN: 0.06, YELLOW: 0.17, ORANGE: 0.6, RED: 0.17},
                              3: {GREEN: 0.05, YELLOW: 0.12, ORANGE: 0.23, RED: 0.6},
-                             4: {GREEN: 0.05, YELLOW: 0.1, ORANGE: 0.15, RED: 0.8},
-                             5: {GREEN: 0.05, YELLOW: 0.1, ORANGE: 0.15, RED: 0.8},
-                             6: {GREEN: 0.05, YELLOW: 0.1, ORANGE: 0.15, RED: 0.8},
-                             7: {GREEN: 0.05, YELLOW: 0.1, ORANGE: 0.15, RED: 0.8},
-                             8: {GREEN: 0.05, YELLOW: 0.1, ORANGE: 0.15, RED: 0.8}}
+                             4: {GREEN: 0.03, YELLOW: 0.07, ORANGE: 0.1, RED: 0.8},
+                             5: {GREEN: 0.03, YELLOW: 0.07, ORANGE: 0.1, RED: 0.8},
+                             6: {GREEN: 0.03, YELLOW: 0.07, ORANGE: 0.1, RED: 0.8},
+                             7: {GREEN: 0.03, YELLOW: 0.07, ORANGE: 0.1, RED: 0.8},
+                             8: {GREEN: 0.03, YELLOW: 0.07, ORANGE: 0.1, RED: 0.8}}
     # Every color returned to the adversary's measurement has a different associated risk for the agent.
     risk_level_for_colors = {GREEN: 4, YELLOW: 3, ORANGE: 2, RED: 1}
 
@@ -378,7 +378,8 @@ class AgenteAStar:
         self.print_formatted_grid(self.start_particles)
 
     def calculate_risk_level(self, adv_action, adv_action_param, adv_action_result):
-        print("Adversary action:", adv_action, "Adversary action param:", adv_action_param, "Adversary action result:", adv_action_result)
+        print("Adversary action:", adv_action, "Adversary action param:", adv_action_param, "Adversary action result:",
+              adv_action_result)
         if adv_action == self.SHOOT or adv_action == self.OBSERVE:
             adv_sight = self.convert_index_to_tuple(adv_action_param)
             distance_to_star_position = self.calc_distance(self.star_position, adv_sight)
@@ -406,15 +407,20 @@ class AgenteAStar:
             # Adversary observed.
             # Every risk is weighted with the risk level according to the observed color.
             if distance == 0:
-                risk_level = 4 + (self.risk_level_for_colors[adv_action_result] * self.sonar_prob_given_dist[distance][adv_action_result])
+                risk_level = 4 + (self.risk_level_for_colors[adv_action_result]
+                                  * self.sonar_prob_given_dist[distance][adv_action_result])
             elif 1 <= distance <= 2:
-                risk_level = 3 + (self.risk_level_for_colors[adv_action_result] * self.sonar_prob_given_dist[distance][adv_action_result])
+                risk_level = 3 + (self.risk_level_for_colors[adv_action_result]
+                                  * self.sonar_prob_given_dist[distance][adv_action_result])
             elif 3 <= distance <= 4:
-                risk_level = 2 + (self.risk_level_for_colors[adv_action_result] * self.sonar_prob_given_dist[distance][adv_action_result])
+                risk_level = 2 + (self.risk_level_for_colors[adv_action_result]
+                                  * self.sonar_prob_given_dist[distance][adv_action_result])
             elif 5 <= distance <= 6:
-                risk_level = 1 + (self.risk_level_for_colors[adv_action_result] * self.sonar_prob_given_dist[distance][adv_action_result])
+                risk_level = 1 + (self.risk_level_for_colors[adv_action_result]
+                                  * self.sonar_prob_given_dist[distance][adv_action_result])
             else:
-                risk_level = 0 + (self.risk_level_for_colors[adv_action_result] * self.sonar_prob_given_dist[distance][adv_action_result])
+                risk_level = 0 + (self.risk_level_for_colors[adv_action_result]
+                                  * self.sonar_prob_given_dist[distance][adv_action_result])
         return risk_level
 
     def get_best_index_to_move(self, adv_action_param):
