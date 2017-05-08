@@ -163,9 +163,9 @@ class AgenteAStar:
 
                 if self.calculate_risk_level(adv_action, adv_action_param, adv_action_result) >= self.RISK_LEVEL_LIMIT:
                     action = self.MOVE
-                    action_param = self.get_best_index_to_move(adv_action_param)
+                    action_param, new_star_position = self.get_best_index_to_move(adv_action_param)
                     # The star position is updated with that movement.
-                    self.star_position = self.convert_index_to_tuple(action_param)
+                    self.star_position = self.convert_index_to_tuple(new_star_position)
                 else:
                     # The agent is not at risk.
                     max_probability, max_elem_index = self.get_max_value_in_table_with_index(self.belief_prev_t)
@@ -381,6 +381,7 @@ class AgenteAStar:
         # Allows to check which is the movement that achieves the maximum distance to the adversary sight in combination
         # with the maximum posterior possible movements.
         max_distance = 0
+        movement_direction = 0
         if i - 1 >= 0:  # Up.
             possible_position = (i - 1, j)
             distance_to_adv_sight = self.calc_distance(possible_position, adv_sight)
@@ -388,6 +389,7 @@ class AgenteAStar:
             if distance_to_adv_sight > max_distance:
                 max_distance = distance_to_adv_sight
                 best_position = possible_position
+                movement_direction = 1
         if j + 1 <= 4:  # Right.
             possible_position = (i, j + 1)
             distance_to_adv_sight = self.calc_distance(possible_position, adv_sight)
@@ -395,6 +397,7 @@ class AgenteAStar:
             if distance_to_adv_sight > max_distance:
                 max_distance = distance_to_adv_sight
                 best_position = possible_position
+                movement_direction = 2
         if i + 1 <= 4:  # Down.
             possible_position = (i + 1, j)
             distance_to_adv_sight = self.calc_distance(possible_position, adv_sight)
@@ -402,6 +405,7 @@ class AgenteAStar:
             if distance_to_adv_sight > max_distance:
                 max_distance = distance_to_adv_sight
                 best_position = possible_position
+                movement_direction = 3
         if j - 1 >= 0:  # Left.
             possible_position = (i, j - 1)
             distance_to_adv_sight = self.calc_distance(possible_position, adv_sight)
@@ -409,7 +413,9 @@ class AgenteAStar:
             if distance_to_adv_sight > max_distance:
                 max_distance = distance_to_adv_sight
                 best_position = possible_position
-        return self.convert_tuple_to_index(best_position)  # Returns the best position as an index.
+                movement_direction = 4
+        # Returns the best movement direction and the new position of the star.
+        return movement_direction, self.convert_tuple_to_index(best_position)
 
 # Utils
 
