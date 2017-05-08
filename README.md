@@ -63,5 +63,7 @@ This section is specific for the teacher of the AI course at Universidad EAFIT.
 
 5. Execute your Jupyter Notebook file and see the game progression. It's like **magic**!
 
+> **Important note:** the star position that comes from the skeleton seems to be zero-based (i.e. between 0 and 24) and in fact it should be one-based (i.e. between 1 and 25). To avoid modifying the skeleton, the given star position was adjusted internally adding 1 to it.
+
 [Python]: <https://www.python.org/downloads/>
 [YouTube Video]: <https://youtu.be/e2s5pg0WLII>

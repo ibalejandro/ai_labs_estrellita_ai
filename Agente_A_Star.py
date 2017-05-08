@@ -105,7 +105,7 @@ class AgenteAStar:
 
     def get_action_to_take(self, current_player, action_result, adversary_action, star_position):
         if self.star_position is None:
-            # The star position index is zero based in the skeleton and should be adjusted adding 1.
+            # The star position index is zero-based in the skeleton and should be adjusted adding 1.
             self.star_position = self.convert_index_to_tuple(star_position + 1)
 
         if adversary_action[0] is None:
