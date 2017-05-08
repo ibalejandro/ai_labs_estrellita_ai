@@ -28,7 +28,7 @@ class AgenteAStar:
     FA = "Forward Algorithm"
     PF = "Particle Filtering"
 
-    PARTICLES_QUANTITY = 50
+    PARTICLES_QUANTITY = 1250
 
     belief_prev_t = [[init_prob, init_prob, init_prob, init_prob, init_prob],
                      [init_prob, init_prob, init_prob, init_prob, init_prob],
@@ -99,57 +99,46 @@ class AgenteAStar:
 
     # Constructor.
     def __init__(self):
-        self.current_player = 0  # There is no current_player at that moment.
-        self.turns_count = 0  # Variable to count the turns of the game.
         self.prev_action = []
-        self.star_position = ()  # The start position of the star.
+        self.star_position = None  # The start position of the star.
         self.belief_update_algorithm = self.FA  # The algorithm that is being used to update beliefs.
 
     def get_action_to_take(self, current_player, action_result, adversary_action, star_position):
-        print("Before executing:")
-        print("Action result:", action_result, "Adversary action:", adversary_action)
-        self.current_player = current_player
-        self.star_position = self.convert_index_to_tuple(star_position)
+        if self.star_position is None:
+            # The star position index is zero based in the skeleton and should be adjusted adding 1.
+            self.star_position = self.convert_index_to_tuple(star_position + 1)
 
         if adversary_action[0] is None:
             # It only occurs in the first turn of the game (no adversary action). The most intelligent action is to
             # observe anywhere.
-            print("First turn = Random observation.")
             action = self.OBSERVE
             # At the beginning, the adversary could be in any of the 25 positions of the grid with equal probability.
             action_param = random.randint(1, self.GRID_SIZE)
         else:
             if not self.prev_action:
                 # There was no previous action of the agent. It´s its first turn as the second player.
-                print("First turn for second player = Random observation.")
                 action = self.OBSERVE
                 action_param = random.randint(1, self.GRID_SIZE)
             else:
-                print("Agent previous action =", self.prev_action, "Result for that action =", action_result)
                 # The adversary action is decomposed into three parameters.
                 adv_action = adversary_action[0]
                 adv_action_param = adversary_action[1]
                 adv_action_result = adversary_action[2]
 
                 if self.prev_action[0] == self.SHOOT:
-                    print("Previous action was SHOOT.")
                     if action_result:  # If action_result = 1, the adversary was hit and the condition is True.
                         # The agent hit the adversary.
                         # The belief update algorithm changes when the adversary is hit for the first time.
-                        print("Belief update algorithm changed to Particle Filtering.")
                         self.belief_update_algorithm = self.PF
                         # The whole particles are agglomerated in the position the agent hit the adversary.
                         tuple_hit = self.convert_index_to_tuple(self.prev_action[1])
                         self.start_particles = copy.deepcopy(self.empty_grid)
                         self.start_particles[tuple_hit[0]][tuple_hit[1]] = self.PARTICLES_QUANTITY
-                        self.print_formatted_grid(self.start_particles)
                         if adv_action != self.MOVE:
                             # If the agent hit the adversary in the last turn and he didn't move away, then the agent
                             # must shoot on the same position and hit again.
                             action_to_take = self.prev_action
-                            self.turns_count += 2
                             # The action to take is the same as the previous one. No more computation is necessary.
-                            print("Action to take:", action_to_take)
                             return action_to_take
                         else:
                             # The adversary was hit and he moved away. An update using Particle Filtering is simulated
@@ -167,34 +156,29 @@ class AgenteAStar:
                             self.execute_particle_filtering(self.prev_action[1], self.ORANGE)
                 elif self.prev_action[0] == self.OBSERVE:
                     # The belief is updated given the measurement position and the observed color.
-                    print("Previous action was OBSERVE.")
                     if self.belief_update_algorithm == self.FA:
                         self.execute_forward_algorithm(self.prev_action[1], action_result)
                     else:
                         self.execute_particle_filtering(self.prev_action[1], action_result)
 
                 if self.calculate_risk_level(adv_action, adv_action_param, adv_action_result) >= self.RISK_LEVEL_LIMIT:
-                    print("The agent is at risk and it has to MOVE.")
                     action = self.MOVE
                     action_param = self.get_best_index_to_move(adv_action_param)
-                    self.star_position = action_param  # The star position is updated with that movement.
+                    # The star position is updated with that movement.
+                    self.star_position = self.convert_index_to_tuple(action_param)
                 else:
                     # The agent is not at risk.
                     max_probability, max_elem_index = self.get_max_value_in_table_with_index(self.belief_prev_t)
                     if max_probability > self.MIN_PROB_TO_SHOOT:
-                        print("The agent has to SHOOT.")
                         action = self.SHOOT
                         action_param = max_elem_index
                     else:
                         # The agent is not sure enough to SHOOT. The probabilities are not very significant.
-                        print("The agent has to OBSERVE.")
                         action = self.OBSERVE
                         action_param = max_elem_index
 
         action_to_take = [action, action_param]
         self.prev_action = action_to_take  # The action that is going to be taken is stored for the next turn.
-        self.turns_count += 2  # When this algorithm executes again, the current turn will be incremented by two.
-        print("Action to take:", action_to_take)
         return action_to_take
 
     def execute_forward_algorithm(self, measurement_index, measurement_color):
@@ -206,10 +190,6 @@ class AgenteAStar:
     def update_belief(self):
         self.elapse_time()
         self.belief_prev_t = copy.deepcopy(self.belief_after_t)
-        print("-----------")
-        print("UPDATED BELIEF AFTER ELAPSING TIME:")
-        print("-----------")
-        self.print_formatted_grid(self.belief_after_t)
 
     def elapse_time(self):
         for i in range(0, self.GRID_WIDTH_HEIGHT):
@@ -232,10 +212,6 @@ class AgenteAStar:
         self.incorporate_observation(measurement_position, measurement_color)
         # The original belief table is updated after elapsing time and incorporating observation.
         self.belief_prev_t = copy.deepcopy(self.belief_after_t_and_obs)
-        print("-----------")
-        print("UPDATED BELIEF AFTER OBSERVATION:")
-        print("-----------")
-        self.print_formatted_grid(self.belief_after_t_and_obs)
 
     def incorporate_observation(self, measurement_position, measurement_color):
         normalization_factor = 0
@@ -261,8 +237,6 @@ class AgenteAStar:
         particles_in_delivery_position = self.start_particles[delivery_position[0]][delivery_position[1]]
         if particles_in_delivery_position != self.PARTICLES_QUANTITY:
             # The probability was distributed in various cells and not concentrated in an unique one.
-            print("Start particles before redistribution.")
-            self.print_formatted_grid(self.start_particles)
             # The adversary was not in that position. Therefore, all particles on that position have to redistributed.
             self.start_particles[delivery_position[0]][delivery_position[1]] = 0
             remaining_particles = self.PARTICLES_QUANTITY - particles_in_delivery_position
@@ -275,12 +249,9 @@ class AgenteAStar:
                     # It is done in order to redistribute particles proportionally to the existing ones.
                     corresponding_particles = round((self.start_particles[i][j] / remaining_particles) *
                                                     particles_in_delivery_position)
-                    print("Corresponding particles to position", i, j, "=", corresponding_particles)
                     # Particles are added to that position according to the proportion of the already existing particles
                     # there.
                     self.start_particles[i][j] += corresponding_particles
-        print("Start particles after redistribution.")
-        self.print_formatted_grid(self.start_particles)
 
     def execute_particle_filtering(self, measurement_index, measurement_color):
         measurement_position = self.convert_index_to_tuple(measurement_index)
@@ -291,17 +262,9 @@ class AgenteAStar:
     # Executes the elapse time phase of the Particle Filtering and replaces the previous belief.
     def update_belief_using_pf(self):
         self.elapse_time_using_pf()
-        print("Start particles after elapsing time.")
-        self.print_formatted_grid(self.start_particles)
-        print("Particles after t.")
-        self.print_formatted_grid(self.particles_after_t)
         self.start_particles = copy.deepcopy(self.particles_after_t)
         # The grid after elapsing time has to be clean to avoid accumulating more particles than exist.
         self.particles_after_t = copy.deepcopy(self.empty_grid)
-        print("-----------")
-        print("UPDATED BELIEF USING PF AFTER ELAPSING TIME:")
-        print("-----------")
-        self.print_formatted_grid(self.start_particles)
 
     def elapse_time_using_pf(self):
         for i in range(0, self.GRID_WIDTH_HEIGHT):
@@ -311,7 +274,6 @@ class AgenteAStar:
                 # Loop over every particle on that position.
                 count = 1
                 while count <= particles_in_position:
-                    print("Enter while in position", position[0], position[1], "for the", count, "time.")
                     next_position = None
                     cumulative_prob = 0
                     random_value = random.random()  # Random float x, 0.0 <= x < 1.0.
@@ -330,10 +292,6 @@ class AgenteAStar:
         self.incorporate_observation_using_pf(measurement_position, measurement_color)
         # The original belief table is updated after elapsing time and incorporating observation.
         self.belief_prev_t = copy.deepcopy(self.belief_after_t_and_obs)
-        print("-----------")
-        print("UPDATED BELIEF AFTER OBSERVATION USING PF:")
-        print("-----------")
-        self.print_formatted_grid(self.belief_after_t_and_obs)
 
     def incorporate_observation_using_pf(self, measurement_position, measurement_color):
         normalization_factor = 0
@@ -372,14 +330,8 @@ class AgenteAStar:
                     self.start_particles[position_assigned[0]][position_assigned[1]] += 1
                     break
             count += 1
-        print("-----------")
-        print("UPDATED PARTICLES AFTER OBSERVATION AND RESAMPLING:")
-        print("-----------")
-        self.print_formatted_grid(self.start_particles)
 
     def calculate_risk_level(self, adv_action, adv_action_param, adv_action_result):
-        print("Adversary action:", adv_action, "Adversary action param:", adv_action_param, "Adversary action result:",
-              adv_action_result)
         if adv_action == self.SHOOT or adv_action == self.OBSERVE:
             adv_sight = self.convert_index_to_tuple(adv_action_param)
             distance_to_star_position = self.calc_distance(self.star_position, adv_sight)
@@ -387,7 +339,6 @@ class AgenteAStar:
         else:
             # Adversary moved.
             risk_level = 0
-        print("Risk level:", risk_level)
         return risk_level
 
     def get_risk_level_given_distance(self, action, distance, adv_action_result):
@@ -464,16 +415,6 @@ class AgenteAStar:
 
     def calc_distance(self, pos_1, pos_2):
         return abs(pos_1[0] - pos_2[0]) + abs(pos_1[1] - pos_2[1])
-
-    def print_formatted_grid(self, grid):
-        for i in range(0, self.GRID_WIDTH_HEIGHT):
-            row = "["
-            for j in range(0, self.GRID_WIDTH_HEIGHT):
-                if j < self.GRID_WIDTH_HEIGHT - 1:
-                    row += str(grid[i][j]) + ", "
-                else:
-                    row += str(grid[i][j]) + "]"
-            print(row)
 
     def convert_tuple_to_index(self, tuple):
         return (tuple[0] * self.GRID_WIDTH_HEIGHT) + tuple[1] + 1
